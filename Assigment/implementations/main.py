@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 # =========================================================
-# CONFIGURAÇÕES GERAIS
+# General Settings
 # =========================================================
 
 random.seed(42)
@@ -24,33 +24,36 @@ K_VALUES = [2, 4, 6, 8, 10, 12, 14, 16]
 PESO_MIN = 1
 PESO_MAX = 100
 
-RESULTS_CSV = "resultados/tabelas/resultados.csv"
+RESULTS_CSV = "results/tables/results.csv"
 
 
 # =========================================================
 # CRIA PASTAS
 # =========================================================
 
-os.makedirs("grafos", exist_ok=True)
-os.makedirs("resultados", exist_ok=True)
-os.makedirs("resultados/graficos", exist_ok=True)
-os.makedirs("resultados/tabelas", exist_ok=True)
-os.makedirs("resultados/logs", exist_ok=True)
+os.makedirs("graphs", exist_ok=True)
+os.makedirs("results", exist_ok=True)
+os.makedirs("results/grafics", exist_ok=True)
+os.makedirs("results/tables", exist_ok=True)
+os.makedirs("results/logs", exist_ok=True)
+
+Graph = Dict[
+    int, 
+    List[
+        Tuple[int, int]
+        ]
+    ]
 
 
 # =========================================================
-# TIPAGEM
+# GERAÇÃO DE GraphS
 # =========================================================
 
-Graph = Dict[int, List[Tuple[int, int]]]
-
-
-# =========================================================
-# GERAÇÃO DE GRAFOS
-# =========================================================
-
-
-def adicionar_aresta(
+"""
+Adds directed edge without repetition.
+used: set of used edges (u, v)
+"""
+def add_edge(
     graph: Graph,
     used: Set[Tuple[int, int]],
     u: int,
@@ -77,7 +80,7 @@ def adicionar_aresta(
 
 def generate_sparse_graph(n: int, multiplier: int) -> Graph:
     """
-    Gera grafo esparso:
+    Gera Graph sparse:
 
     e = multiplier * n
 
@@ -99,7 +102,7 @@ def generate_sparse_graph(n: int, multiplier: int) -> Graph:
 
         w = random.randint(PESO_MIN, PESO_MAX)
 
-        adicionar_aresta(graph, used, u, v, w)
+        add_edge(graph, used, u, v, w)
 
     while sum(len(graph[u]) for u in graph) < edges_target:
 
@@ -108,7 +111,7 @@ def generate_sparse_graph(n: int, multiplier: int) -> Graph:
 
         w = random.randint(PESO_MIN, PESO_MAX)
 
-        adicionar_aresta(graph, used, u, v, w)
+        add_edge(graph, used, u, v, w)
 
     return graph
 
@@ -116,7 +119,7 @@ def generate_sparse_graph(n: int, multiplier: int) -> Graph:
 
 def generate_dense_graph(n: int, divisor: int) -> Graph:
     """
-    Gera grafo denso:
+    Gera Graph dense:
 
     e = n(n-1)/divisor
     """
@@ -134,7 +137,7 @@ def generate_dense_graph(n: int, divisor: int) -> Graph:
 
         w = random.randint(PESO_MIN, PESO_MAX)
 
-        adicionar_aresta(graph, used, u, v, w)
+        add_edge(graph, used, u, v, w)
 
     return graph
 
@@ -142,7 +145,7 @@ def generate_dense_graph(n: int, divisor: int) -> Graph:
 
 def save_graph(filename: str, graph: Graph, source: int = 0):
     """
-    Salva grafo em formato txt.
+    Salva Graph em formato txt.
     """
 
     n = len(graph)
@@ -163,10 +166,10 @@ def save_graph(filename: str, graph: Graph, source: int = 0):
 
 def generate_all_graphs():
     """
-    Gera todos os grafos dos experimentos.
+    Gera todos os Graphs dos experimentos.
     """
 
-    print("\nGerando grafos esparsos...")
+    print("\nGerando Graphs sparses...")
 
     for n in SPARSE_SIZES:
 
@@ -174,11 +177,11 @@ def generate_all_graphs():
 
             graph = generate_sparse_graph(n, mult)
 
-            filename = f"grafos/esparso_n{n}_e{mult}n.txt"
+            filename = f"Graphs/sparse_n{n}_e{mult}n.txt"
 
             save_graph(filename, graph)
 
-    print("\nGerando grafos densos...")
+    print("\nGerando Graphs denses...")
 
     for n in DENSE_SIZES:
 
@@ -186,7 +189,7 @@ def generate_all_graphs():
 
             graph = generate_dense_graph(n, divisor)
 
-            filename = f"grafos/denso_n{n}_div{divisor}.txt"
+            filename = f"Graphs/dense_n{n}_div{divisor}.txt"
 
             save_graph(filename, graph)
 
@@ -598,7 +601,7 @@ def compare_distances(d1, d2):
 
 def init_csv():
     """
-    Inicializa CSV de resultados.
+    Inicializa CSV de results.
     """
 
     with open(RESULTS_CSV, "w", newline="") as f:
@@ -608,7 +611,7 @@ def init_csv():
         writer.writerow([
             "experimento",
             "algoritmo",
-            "tipo_grafo",
+            "tipo_Graph",
             "n",
             "e",
             "k",
@@ -663,7 +666,7 @@ def experiment_scalability():
     dense_ns = []
 
     # -----------------------------------------------------
-    # ESPARSOS
+    # sparseS
     # -----------------------------------------------------
 
     for n in SPARSE_SIZES:
@@ -674,7 +677,7 @@ def experiment_scalability():
 
         source = 0
 
-        print(f"\n[ESPARSO] n={n} e={e}")
+        print(f"\n[sparse] n={n} e={e}")
 
         dist_dij, pred_dij, t_dij = dijkstra(graph, source)
 
@@ -720,7 +723,7 @@ def experiment_scalability():
         append_csv([
             "Escalabilidade",
             "Dijkstra",
-            "Esparso",
+            "sparse",
             n,
             e,
             "-",
@@ -737,7 +740,7 @@ def experiment_scalability():
         append_csv([
             "Escalabilidade",
             "FindPivots+Dijkstra",
-            "Esparso",
+            "sparse",
             n,
             e,
             8,
@@ -752,7 +755,7 @@ def experiment_scalability():
         ])
 
     # -----------------------------------------------------
-    # DENSOS
+    # denseS
     # -----------------------------------------------------
 
     for n in DENSE_SIZES:
@@ -763,7 +766,7 @@ def experiment_scalability():
 
         source = 0
 
-        print(f"\n[DENSO] n={n} e={e}")
+        print(f"\n[dense] n={n} e={e}")
 
         dist_dij, pred_dij, t_dij = dijkstra(graph, source)
 
@@ -807,19 +810,19 @@ def experiment_scalability():
 
     plt.figure(figsize=(8, 5))
 
-    plt.plot(sparse_ns, dijkstra_sparse_times, marker='o', label='Dijkstra Esparso')
+    plt.plot(sparse_ns, dijkstra_sparse_times, marker='o', label='Dijkstra sparse')
 
-    plt.plot(sparse_ns, preprocess_sparse_times, marker='o', label='FindPivots Esparso')
+    plt.plot(sparse_ns, preprocess_sparse_times, marker='o', label='FindPivots sparse')
 
     plt.xlabel('n')
 
     plt.ylabel('Tempo (s)')
 
-    plt.title('Tempo x n (Esparsos)')
+    plt.title('Tempo x n (sparses)')
 
     plt.legend()
 
-    plt.savefig('resultados/graficos/esparsos_tempo.png')
+    plt.savefig('results/grafics/sparses_tempo.png')
 
     plt.close()
 
@@ -926,7 +929,7 @@ def experiment_lemma():
         append_csv([
             "Lema 3.2",
             "FindPivots",
-            "Esparso",
+            "sparse",
             n,
             sum(len(graph[u]) for u in graph),
             k,
@@ -951,7 +954,7 @@ def experiment_lemma():
 
     plt.title('Distribuição da Razão do Lema')
 
-    plt.savefig('resultados/graficos/histograma_lema.png')
+    plt.savefig('results/grafics/histograma_lema.png')
 
     plt.close()
 
@@ -966,7 +969,7 @@ def experiment_lemma():
 
     plt.title('k x |P|')
 
-    plt.savefig('resultados/graficos/k_vs_p.png')
+    plt.savefig('results/grafics/k_vs_p.png')
 
     plt.close()
 
@@ -981,7 +984,7 @@ def experiment_lemma():
 
     plt.title('|S| x |P|')
 
-    plt.savefig('resultados/graficos/s_vs_p.png')
+    plt.savefig('results/grafics/s_vs_p.png')
 
     plt.close()
 
@@ -996,7 +999,7 @@ def experiment_lemma():
 
     plt.title('Tempo vs k|W|')
 
-    plt.savefig('resultados/graficos/tempo_vs_kw.png')
+    plt.savefig('results/grafics/tempo_vs_kw.png')
 
     plt.close()
 
@@ -1075,7 +1078,7 @@ def experiment_k_sensitivity():
 
     plt.title('k x Speedup')
 
-    plt.savefig('resultados/graficos/k_vs_speedup.png')
+    plt.savefig('results/grafics/k_vs_speedup.png')
 
     plt.close()
 
@@ -1090,7 +1093,7 @@ def experiment_k_sensitivity():
 
     plt.title('k x Precisão')
 
-    plt.savefig('resultados/graficos/k_vs_precisao.png')
+    plt.savefig('results/grafics/k_vs_precisao.png')
 
     plt.close()
 
@@ -1120,15 +1123,15 @@ def main():
     total_elapsed = time.perf_counter() - total_start
 
     print("\n================================================")
-    print("TODOS OS EXPERIMENTOS FINALIZADOS")
+    print("All experiments completed!")
     print("================================================")
 
-    print(f"Tempo total: {total_elapsed:.2f}s")
+    print(f"TOtal time: {total_elapsed:.2f}s")
 
-    print("\nArquivos gerados:")
-    print("- grafos/")
-    print("- resultados/graficos/")
-    print("- resultados/tabelas/")
+    print("\nGenenerated files:")
+    print("- Graphs/")
+    print("- results/grafics/")
+    print("- results/tables/")
 
 
 if __name__ == "__main__":
