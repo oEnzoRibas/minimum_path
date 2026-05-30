@@ -1,11 +1,16 @@
-Experiment,Type,N,E,K,|S|,|W|,|P|,|U_tilde|,Dijkstra Time (s),Pivots Time (s)
-1_Scalability,sparse,100,200,4,7,7,0,10,0.000532,0.000364
-1_Scalability,dense,100,2475,4,91,91,0,26,0.002316,0.004118
-1_Scalability,sparse,500,1000,4,22,22,0,24,0.004357,0.002651
-1_Scalability,dense,500,62375,4,483,483,0,44,0.019906,0.047892
-1_Scalability,sparse,1000,2000,4,30,30,0,31,0.002842,0.001511
-1_Scalability,dense,1000,249750,4,984,984,0,122,0.081563,0.203539
-1_Scalability,sparse,5000,10000,4,72,72,0,71,0.017911,0.006462
-1_Scalability,dense,5000,6248750,4,4930,4930,0,70,2.778582,6.179612
-1_Scalability,sparse,10000,20000,4,74,74,0,102,0.035609,0.011770
-1_Scalability,dense,10000,24997500,4,9900,9900,0,102,14.250419,26.072178
+Experiment,Type,N,E,Dijkstra Time (s),Bellman-Ford Time (s)
+1_Scalability,sparse,100,200,0.000261,0.001340
+1_Scalability,sparse,100,300,0.000281,0.001366
+1_Scalability,sparse,100,400,0.000571,0.002762
+1_Scalability,dense,100,4950,0.001697,0.014553
+1_Scalability,dense,100,2475,0.001511,0.007582
+1_Scalability,sparse,500,1000,0.001334,0.010068
+1_Scalability,sparse,500,1500,0.001591,0.015088
+1_Scalability,sparse,500,2000,0.002413,0.018235
+1_Scalability,dense,500,124750,0.040089,0.437994
+1_Scalability,dense,500,62375,0.021986,0.215171
+1_Scalability,sparse,1000,2000,0.003105,0.025980
+1_Scalability,sparse,1000,3000,0.006058,0.030141
+1_Scalability,sparse,1000,4000,0.004414,0.033912
+1_Scalability,dense,1000,499500,0.185333,1.368150
+1_Scalability,dense,1000,249750,0.106272,1.121963

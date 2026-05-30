@@ -301,59 +301,63 @@ class Graph:
         
         return dist, last_dist, S
 
-
     def optimized_dijkstra_with_pivots(
-            self,
-            source: int,
-            extraction_limit: int,
-            k: int
+        self,
+        source: int,
+        extraction_limit: int,
+        k: int
     ):
         """
-        Implements the application of find_pivots as a pre-processing step 
-        for Dijkstra, treating pivots as super-sources and combining the results.
-        
-        Args:
-            source: The initial starting node.
-            extract_limit: Vertices to process in the initial partial Dijkstra.
-            k: Deepness parameter for the find_pivots algorithm.
-            
-        Returns:
-            combined_dist: The final combined minimum distances from the source.
-            metrics: Dictionary containing S, W, P, and U_tilde sizes.
-            execution_time: Total execution time in seconds.
+        Implements the application of find_pivots as a pre-processing step
+        for Dijkstra, treating pivots as super-sources and combining results.
         """
 
-        start = time.   perf_counter()
-        
-        d_hat, B, S = self.partial_dijkstra(source, extraction_limit)
+        start = time.perf_counter()
 
-        P, W = self.find_pivots(B, S, d_hat, k)
+        d_hat, B, S = self.partial_dijkstra(
+            source,
+            extraction_limit
+        )
 
-        pivot_distances: list[dict[int,float]] = []
+        P, W = self.find_pivots(
+            B,
+            S,
+            d_hat,
+            k
+        )
 
-        for p in P:
+        pivot_list = list(P)
+
+        pivot_distances: list[dict[int, float]] = []
+
+        for p in pivot_list:
             p_dist, _, _ = self.dijkstra(p)
             pivot_distances.append(p_dist)
+
+        combined_dist: dict[int, float] = {
+            node: d_hat.get(node, float("inf")) 
+            for node in range(self.nodes)
+        }
+
+        for index, p in enumerate(pivot_list):
+            dist_to_pivot = d_hat.get(p, float("inf"))
+            p_dist_map = pivot_distances[index]
             
-        combined_dist: dict[int, float] = {}
-        
-        for node in range(self.nodes):
-            min_dist = d_hat.get(node, float('inf'))
-            
-            for index, p in enumerate(P):
-                p_dist = pivot_distances[index]
-                path_via_p = d_hat.get(p, float('inf')) + p_dist.get(node, float('inf'))
+            for node in range(self.nodes):
+                path_via_p = dist_to_pivot + p_dist_map.get(node, float("inf"))
                 
-                if path_via_p < min_dist:
-                    min_dist = path_via_p
-                    
-            combined_dist[node] = min_dist
+                if path_via_p < combined_dist[node]:
+                    combined_dist[node] = path_via_p
 
         end = time.perf_counter()
         execution_time = end - start
-            
-        u_tilde = sum(1 for dist in d_hat.values() if dist <= B)
-        
+
+        u_tilde = sum(
+            1
+            for dist in d_hat.values()
+            if dist <= B
+        )
+
         metrics = {
             "size_S": len(S),
             "size_W": len(W),
@@ -368,6 +372,9 @@ class Graph:
         Implementation of bellman_ford algorithms for Single Source Shortest Path.
         This runs in O(V * E)
         """
+
+        start = time.perf_counter()
+
         dist: dict[int, float] = {
             node: float('inf') for node in range(self.nodes)
         }
@@ -397,7 +404,10 @@ class Graph:
                 if dist[u] != float('inf') and dist[u] + weight < dist[v]:
                     raise ValueError("The graph has a negative cycle")
 
-        return dist, prev
+        end = time.perf_counter()
+
+        execution_time = end - start
+        return dist, prev, execution_time
     
 
     @staticmethod
@@ -486,10 +496,6 @@ class Graph:
 
         return graph, s
 
-import csv
-import math
-from pathlib import Path
-
 class BenchmarkRunner:
     def __init__(self, output_dir: str = "results/"):
         self.output_dir = Path(output_dir)
@@ -522,10 +528,11 @@ class BenchmarkRunner:
             k: int, 
             metrics: dict, 
             base_time: float, 
-            opt_time: float
+            opt_time: float,
+            bf_time: float | None = None
     ) -> dict:
         """Helper function to keep dictionary creation DRY."""
-        return {
+        data = {
             "Experiment": exp_name,
             "Type": g_type,
             "N": n,
@@ -538,62 +545,80 @@ class BenchmarkRunner:
             "Dijkstra Time (s)": f"{base_time:.6f}",
             "Pivots Time (s)": f"{opt_time:.6f}"
         }
+        
+        if bf_time is not None:
+            data["Bellman-Ford Time (s)"] = f"{bf_time:.6f}"
+        else:
+            data["Bellman-Ford Time (s)"] = "N/A"
+            
+        return data
 
     def _run_experiment_1_scalability(self) -> list[dict]:
-        """Executes Experiment 1 and returns the results."""
+        """
+        Executes Experiment 1 to test base scalability of Dijkstra vs Bellman-Ford.
+        FindPivots is EXCLUDED from this experiment as per instructions.
+        """
+        import time
+        
         results = []
-        configs = [
-            {"n": 100, "e_mult": 2, "e_div": 4},
-            {"n": 500, "e_mult": 2, "e_div": 4},
-            {"n": 1000, "e_mult": 2, "e_div": 4},
-            {"n": 5000, "e_mult": 2, "e_div": 4},
-            {"n": 10000, "e_mult": 2, "e_div": 4}
-        ]
+        n_values = [100, 500, 1000]
+        e_multipliers = [2, 3, 4]  
+        e_divisors = [2, 4]        
         
-        print("\n--- Starting Experiment 1: Scalability ---")
+        print("\n--- Starting Experiment 1: Scalability (Base Algorithms Only) ---")
         
-        for config in configs:
-            n = config["n"]
-            extraction_limit = int(math.sqrt(n)) 
-            k_default = 4 
+        for n in n_values:
+            for mult in e_multipliers:
+                e_sparse = n * mult
+                sparse_filename = f"sparse_n_{n}_e_{mult}n.txt"
+                
+                graph_s, source_s = self._get_or_create_graph(e=e_sparse, n=n, filename=sparse_filename)
+                
+                # Dijkstra Control
+                _, _, base_time_s = graph_s.dijkstra(source_s)
+                
+                # Bellman-Ford
+                start_bf_s = time.perf_counter()
+                graph_s.bellman_ford(source_s)
+                bf_time_s = time.perf_counter() - start_bf_s
+                
+                results.append({
+                    "Experiment": "1_Scalability",
+                    "Type": "sparse",
+                    "N": n,
+                    "E": e_sparse,
+                    "Dijkstra Time (s)": f"{base_time_s:.6f}",
+                    "Bellman-Ford Time (s)": f"{bf_time_s:.6f}"
+                })
 
-            # Sparse Graph Run
-            mult = config["e_mult"]
-            e_sparse = n * mult
-            sparse_filename = f"sparse_n_{n}_e_{mult}n.txt"
-            
-            graph_s, source_s = self._get_or_create_graph(e=e_sparse, n=n, filename=sparse_filename)
-            _, _, base_time_s = graph_s.dijkstra(source_s)
-            _, metrics_s, opt_time_s = graph_s.optimized_dijkstra_with_pivots(
-                source=source_s, extraction_limit=extraction_limit, k=k_default
-            )
-            
-            results.append(self._format_result(
-                "1_Scalability", "sparse", n, e_sparse, k_default, metrics_s, base_time_s, opt_time_s
-            ))
-
-            # Dense Graph Run
-            div = config["e_div"]
-            e_dense = (n * (n - 1)) // div
-            dense_filename = f"dense_n_{n}_e_div_{div}.txt"
-            
-            graph_d, source_d = self._get_or_create_graph(e=e_dense, n=n, filename=dense_filename)
-            _, _, base_time_d = graph_d.dijkstra(source_d)
-            _, metrics_d, opt_time_d = graph_d.optimized_dijkstra_with_pivots(
-                source=source_d, extraction_limit=extraction_limit, k=k_default
-            )
-            
-            results.append(self._format_result(
-                "1_Scalability", "dense", n, e_dense, k_default, metrics_d, base_time_d, opt_time_d
-            ))
+            for div in e_divisors:
+                e_dense = (n * (n - 1)) // div
+                dense_filename = f"dense_n_{n}_e_div_{div}.txt"
+                
+                graph_d, source_d = self._get_or_create_graph(e=e_dense, n=n, filename=dense_filename)
+                
+                # Dijkstra Control
+                _, _, base_time_d = graph_d.dijkstra(source_d)
+                
+                # Bellman-Ford
+                _, _, bf_time_d = graph_d.bellman_ford(source_d)
+                
+                results.append({
+                    "Experiment": "1_Scalability",
+                    "Type": "dense",
+                    "N": n,
+                    "E": e_dense,
+                    "Dijkstra Time (s)": f"{base_time_d:.6f}",
+                    "Bellman-Ford Time (s)": f"{bf_time_d:.6f}"
+                })
 
         return results
-
+    
     def _run_experiment_2_sensitivity(self) -> list[dict]:
         """Executes Experiment 2 and returns the results."""
         results = []
         k_values = [2, 4, 6, 8, 10, 12, 14, 16]
-        n = 1000
+        n = 10000
         mult = 2
         e = n * mult
         
